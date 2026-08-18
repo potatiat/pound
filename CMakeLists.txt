@@ -97,14 +97,20 @@ set_target_properties(imgui PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 # clang-cl doesn't receive /EHsc by default; mimalloc's alloc.c is compiled
 # as C++ and requires exceptions for its new/delete overrides.
-target_compile_options(mimalloc PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/EHsc>)
+foreach (mi_target mimalloc mimalloc-static mimalloc-obj)
+    if (TARGET ${mi_target})
+        target_compile_options(${mi_target} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/EHsc>)
+    endif ()
+endforeach ()
 
 
 message(STATUS "[SDL] Configuring SDL library...")
 
-# Build static SDL.
-set(SDL_SHARED OFF CACHE BOOL "" FORCE)
-set(SDL_STATIC ON CACHE BOOL "" FORCE)
+# Shared SDL so Pound.exe and imgui.dll use one SDL instance.
+# Static SDL in both images gives two copies of SDL state and crashes
+# in ImGui_ImplSDL3_Init on Windows debug CRT.
+set(SDL_SHARED ON CACHE BOOL "" FORCE)
+set(SDL_STATIC OFF CACHE BOOL "" FORCE)
 set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
 set(SDL_TESTS OFF CACHE BOOL "" FORCE)
 set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
@@ -144,7 +150,7 @@ endforeach ()
 add_subdirectory(extern/sdl/sdl)
 
 # Suppress clang warnings.
-set_target_properties(SDL3-static PROPERTIES
+set_target_properties(SDL3-shared PROPERTIES
         INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "$<TARGET_PROPERTY:SDL3::SDL3,INTERFACE_INCLUDE_DIRECTORIES>"
 )
 
@@ -169,6 +175,10 @@ target_include_directories(PoundGui PUBLIC src/gui)
 target_link_libraries(PoundGui PRIVATE PoundCore imgui mimalloc)
 set_target_properties(PoundGui PROPERTIES C_VISIBILITY_PRESET hidden)
 set_target_properties(PoundGui PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+if (WIN32)
+    # MSVC/clang-cl do not prefix DLLs with "lib"; the loader looks for libPoundGui.dll.
+    set_target_properties(PoundGui PROPERTIES PREFIX "lib")
+endif ()
 add_compiler_flags(PoundGui)
 add_linker_flags(PoundGui)
 add_sanitizers(PoundGui)
