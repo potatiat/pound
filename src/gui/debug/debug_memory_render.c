@@ -5,11 +5,12 @@
 /// How much brighter a box becomes while hovered (0.0 = unchanged, 1.0 = white).
 #define GUI_BOX_HOVER_LIGHTEN 0.25F
 
-#define GUI_BOX_LABEL_INSET   4.0F
-#define GUI_BOX_LABEL_COLOR   IM_COL32(0, 0, 0, 255)
-#define GUI_BOX_CAPTION_COLOR IM_COL32(128, 128, 128, 255)
-
+#define GUI_BOX_LABEL_INSET           4.0F
+#define GUI_BOX_LABEL_COLOR           IM_COL32(0, 0, 0, 255)
+#define GUI_BOX_CAPTION_COLOR         IM_COL32(128, 128, 128, 255)
 #define GUI_BOX_INFO_MEMORY_PAGE_SIZE 4096ULL
+
+POUND_HOT void progress_bar_render(double numerator_mib, double denominator_mib);
 
 void
 debug_memory_render(debug_memory_tracker_t *context)
@@ -174,64 +175,20 @@ debug_memory_render(debug_memory_tracker_t *context)
             const ImVec4_c header_color
                 = { .x = 100.0f / 255.0f, .y = 149.0f / 255.0f, .z = 237.0f / 255.0f, .w = 1.0f };
             igTextColored(header_color, "Memory Utilization");
-            igSeparator();
-            igText("Committed vs reserved");
 
             const double reserved_mib  = (double)stats.reserved.current / (1024.0F * 1024.0F);
             const double committed_mib = (double)stats.committed.current / (1024.0F * 1024.0F);
             const double memory_in_use
                 = (double)(stats.malloc_normal.current + stats.malloc_huge.current)
                   / (1024.0F * 1024.0F);
-            const double malloc_req_mib
-                = (double)stats.malloc_requested.total / (1024.0F * 1024.0F);
 
-            float committed_reserved_fraction
-                = (reserved_mib > 0.0F) ? (float)(committed_mib / reserved_mib) : 0.0F;
-            if (committed_reserved_fraction > 1.0F)
-            {
-                committed_reserved_fraction = 1.0F;
-            }
-
-            if (committed_reserved_fraction < 0.0F)
-            {
-                committed_reserved_fraction = 1.0F;
-            }
-
-            char committed_reserved_overlay[128];
-            snprintf(committed_reserved_overlay,
-                     sizeof(committed_reserved_overlay),
-                     "%.1f / %.1f MiB (%.0f%%)",
-                     committed_mib,
-                     reserved_mib,
-                     committed_reserved_fraction * 100.0F);
-
-            igText("In Use vs committed");
+            igSeparator();
+            igText("Committed vs reserved");
+            progress_bar_render(committed_mib, reserved_mib);
             igSeparator();
 
-            const ImVec2_c bar_size = { .x = -1.0f, .y = 0.0f };
-            igProgressBar(committed_reserved_fraction, bar_size, committed_reserved_overlay);
-
-            float inuse_committed_fraction
-                = (committed_mib > 0.0) ? (float)(memory_in_use / committed_mib) : 0.0f;
-
-            if (inuse_committed_fraction < 0.0f)
-            {
-                inuse_committed_fraction = 0.0f;
-            }
-            else if (inuse_committed_fraction > 1.0f)
-            {
-                inuse_committed_fraction = 1.0f;
-            }
-
-            char inuse_committed_overlay[128];
-            snprintf(inuse_committed_overlay,
-                     sizeof(inuse_committed_overlay),
-                     "%.1f / %.1f MiB (%.0f%%)",
-                     memory_in_use,
-                     committed_mib,
-                     inuse_committed_fraction * 100.0f);
-
-            igProgressBar(inuse_committed_fraction, bar_size, inuse_committed_overlay);
+            igText("In Use vs committed");
+            progress_bar_render(memory_in_use, committed_mib);
         }
     }
 
@@ -389,6 +346,32 @@ debug_memory_gui_box_info_render(const debug_memory_gui_box_info_t *info)
     igText("%s", info->permissions);
 
     igEndTable();
+}
+
+POUND_HOT void
+progress_bar_render(const double numerator_mib, const double denominator_mib)
+{
+    float fraction = (denominator_mib > 0.0) ? (float)(numerator_mib / denominator_mib) : 0.0f;
+
+    if (fraction < 0.0f)
+    {
+        fraction = 0.0f;
+    }
+    else if (fraction > 1.0f)
+    {
+        fraction = 1.0f;
+    }
+
+    char overlay[128];
+    snprintf(overlay,
+             sizeof(overlay),
+             "%.1f / %.1f MiB (%.0f%%)",
+             numerator_mib,
+             denominator_mib,
+             fraction * 100.0f);
+
+    const ImVec2_c bar_size = { .x = -1.0f, .y = 0.0f };
+    igProgressBar(fraction, bar_size, overlay);
 }
 
 /*** end of file ***/
