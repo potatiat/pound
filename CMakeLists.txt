@@ -26,6 +26,12 @@ if (POLICY CMP0091)
     cmake_policy(SET CMP0091 NEW)
 endif ()
 
+# De-duplicate libraries on link lines.
+if (POLICY CMP0156)
+    cmake_policy(SET CMP0156 NEW)
+endif ()
+
+
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)
 endif ()
