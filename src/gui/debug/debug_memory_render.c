@@ -175,6 +175,7 @@ debug_memory_render(debug_memory_tracker_t *context)
                 = { .x = 100.0f / 255.0f, .y = 149.0f / 255.0f, .z = 237.0f / 255.0f, .w = 1.0f };
             igTextColored(header_color, "Memory Utilization");
             igSeparator();
+            igText("Committed vs reserved");
 
             const double reserved_mib  = (double)stats.reserved.current / (1024.0F * 1024.0F);
             const double committed_mib = (double)stats.committed.current / (1024.0F * 1024.0F);
@@ -184,24 +185,53 @@ debug_memory_render(debug_memory_tracker_t *context)
             const double malloc_req_mib
                 = (double)stats.malloc_requested.total / (1024.0F * 1024.0F);
 
-            float fraction = (reserved_mib > 0.0F) ? (float)(committed_mib / reserved_mib) : 0.0F;
-
-            if (fraction > 1.0F)
+            float committed_reserved_fraction
+                = (reserved_mib > 0.0F) ? (float)(committed_mib / reserved_mib) : 0.0F;
+            if (committed_reserved_fraction > 1.0F)
             {
-                fraction = 1.0F;
+                committed_reserved_fraction = 1.0F;
             }
 
-            char overlay[128];
-            snprintf(overlay,
-                     sizeof(overlay),
+            if (committed_reserved_fraction < 0.0F)
+            {
+                committed_reserved_fraction = 1.0F;
+            }
+
+            char committed_reserved_overlay[128];
+            snprintf(committed_reserved_overlay,
+                     sizeof(committed_reserved_overlay),
                      "%.1f / %.1f MiB (%.0f%%)",
                      committed_mib,
                      reserved_mib,
-                     fraction * 100.0F);
+                     committed_reserved_fraction * 100.0F);
 
-            igText("Committed vs reserved");
-            igProgressBar(fraction, (ImVec2_c) { .x = -1.0f, .y = 0.0f }, overlay);
-            igText("in use: %.1f MiB   malloc req: %.1f MiB", memory_in_use, malloc_req_mib);
+            igText("In Use vs committed");
+            igSeparator();
+
+            const ImVec2_c bar_size = { .x = -1.0f, .y = 0.0f };
+            igProgressBar(committed_reserved_fraction, bar_size, committed_reserved_overlay);
+
+            float inuse_committed_fraction
+                = (committed_mib > 0.0) ? (float)(memory_in_use / committed_mib) : 0.0f;
+
+            if (inuse_committed_fraction < 0.0f)
+            {
+                inuse_committed_fraction = 0.0f;
+            }
+            else if (inuse_committed_fraction > 1.0f)
+            {
+                inuse_committed_fraction = 1.0f;
+            }
+
+            char inuse_committed_overlay[128];
+            snprintf(inuse_committed_overlay,
+                     sizeof(inuse_committed_overlay),
+                     "%.1f / %.1f MiB (%.0f%%)",
+                     memory_in_use,
+                     committed_mib,
+                     inuse_committed_fraction * 100.0f);
+
+            igProgressBar(inuse_committed_fraction, bar_size, inuse_committed_overlay);
         }
     }
 
