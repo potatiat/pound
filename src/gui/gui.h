@@ -44,7 +44,7 @@ typedef struct
 /// gui.c
 POUND_EXPORT bool gui_plugin_exports_get(gui_plugin_exports_t *out);
 
-/// gui_loader.c
+/// gui_hot_reload.c
 POUND_EXPORT bool     gui_plugin_load_module(gui_plugin_t *POUND_RESTRICT plugin,
                                              const char *POUND_RESTRICT   source_path);
 POUND_EXPORT void     gui_plugin_destroy(gui_plugin_t *plugin);
