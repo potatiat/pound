@@ -169,6 +169,7 @@ message(STATUS "[PoundGUI] Configuring Pound GUI Library...")
 add_library(PoundGui SHARED
         src/gui/gui.c
         src/gui/gui_hot_reload.c
+        src/gui/gui_layout.c
         src/gui/debug/debug_memory_data.c
         src/gui/debug/debug_memory_render.c)
 target_include_directories(PoundGui PUBLIC src/gui)
