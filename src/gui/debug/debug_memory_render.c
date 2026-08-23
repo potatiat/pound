@@ -48,8 +48,7 @@ debug_memory_render(debug_memory_tracker_t *context)
     }
 
     mi_stats_t_decl(stats);
-
-    if (true == igBegin(title, NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    if (true == igBegin(title, NULL, 0))
     {
         ImDrawList *POUND_RESTRICT draw_list   = igGetWindowDrawList();
         const ImVec2_c             origin      = igGetCursorScreenPos();
