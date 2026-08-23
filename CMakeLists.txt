@@ -170,6 +170,7 @@ foreach (sdl_option
         SDL_CPUINFO
         SDL_X11_XSCRNSAVER
         SDL_X11_XTEST
+        SDL_WAYLAND_LIBDECOR
 )
     set(${sdl_option} OFF CACHE BOOL "" FORCE)
 endforeach ()
