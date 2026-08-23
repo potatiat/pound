@@ -20,12 +20,21 @@
 
 #endif // POUND_PLATFORM_WINDOWS
 
+typedef enum
+{
+    GUI_PLUGIN_SUCCESS = 0,
+    GUI_PLUGIN_ERROR_INVALID_ARGUMENT,
+    GUI_PLUGIN_ERROR_ALLOCATION_FAILED,
+    GUI_PLUGIN_ERROR_BUFFER_TOO_SMALL,
+    GUI_PLUGIN_ERROR_PANEL_REGISTRY_FULL,
+} gui_plugin_error_t;
+
 typedef struct
 {
-    void *(*create)(const void *saved_state, size_t saved_size);
-    void (*destroy)(void *gui);
-    void (*render_frame)(void *gui);
-    size_t (*save)(void *gui, void *out, size_t capacity);
+    gui_plugin_error_t (*create)(const void *saved_state, size_t saved_size, void **out);
+    gui_plugin_error_t (*destroy)(void *gui);
+    gui_plugin_error_t (*render_frame)(void *gui);
+    gui_plugin_error_t (*save)(void *gui, void *out_gui, size_t capacity, size_t *out_size);
 } gui_plugin_exports_t;
 
 typedef struct
@@ -42,7 +51,8 @@ typedef struct
 } gui_plugin_t;
 
 /// gui.c
-POUND_EXPORT bool gui_plugin_exports_get(gui_plugin_exports_t *out);
+POUND_EXPORT gui_plugin_error_t gui_plugin_exports_get(gui_plugin_exports_t *out);
+POUND_EXPORT const char        *gui_plugin_error_to_string(gui_plugin_error_t error);
 
 /// gui_hot_reload.c
 POUND_EXPORT bool     gui_plugin_load_module(gui_plugin_t *POUND_RESTRICT plugin,

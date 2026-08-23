@@ -30,10 +30,13 @@ typedef struct
     char                   pad[7];
 } gui_state_t;
 
-static void  *gui_create(const void *saved_data, size_t saved_size);
-static void   gui_destroy(void *gui_state);
-static void   gui_render_frame(void *gui_state);
-static size_t gui_save(void *gui_state, void *out, size_t capacity);
+static gui_plugin_error_t gui_create(const void *saved_data, size_t saved_size, void **out);
+static gui_plugin_error_t gui_destroy(void *gui_state);
+static gui_plugin_error_t gui_render_frame(void *gui_state);
+static gui_plugin_error_t gui_save(void   *gui_state,
+                                   void   *out_gui,
+                                   size_t  capacity,
+                                   size_t *out_size);
 
 static void gui_panel_register(gui_state_t *POUND_RESTRICT state,
                                const char *POUND_RESTRICT  name,
@@ -43,13 +46,13 @@ static void gui_panel_render_memory_tracker(void *context);
 static void gui_panel_render_hot_reload_guide(void *context);
 static void gui_panel_render_imgui_demo(void *context);
 
-bool
+gui_plugin_error_t
 gui_plugin_exports_get(gui_plugin_exports_t *out)
 {
     if (NULL == out)
     {
         POUND_LOG_ERROR(&thread_logger, "Aborting function: out is NULL.");
-        return false;
+        return GUI_PLUGIN_ERROR_INVALID_ARGUMENT;
     }
 
     out->create       = gui_create;
@@ -59,9 +62,36 @@ gui_plugin_exports_get(gui_plugin_exports_t *out)
     return true;
 }
 
-static void *
-gui_create(const void *POUND_RESTRICT saved_data, size_t saved_size)
+const char *
+gui_plugin_error_to_string(const gui_plugin_error_t error)
 {
+    switch (error)
+    {
+        case GUI_PLUGIN_SUCCESS:
+            return "a gui plugin operation was successful";
+        case GUI_PLUGIN_ERROR_INVALID_ARGUMENT:
+            return "a passed function argument was invalid";
+        case GUI_PLUGIN_ERROR_ALLOCATION_FAILED:
+            return "an allocator failed to allocate memory";
+        case GUI_PLUGIN_ERROR_BUFFER_TOO_SMALL:
+            return "a buffer was too small";
+        case GUI_PLUGIN_ERROR_PANEL_REGISTRY_FULL:
+            return "the panel registry is full";
+    }
+    return "UNKNOWN ERROR";
+}
+
+static gui_plugin_error_t
+gui_create(const void *POUND_RESTRICT saved_data, size_t saved_size, void **out)
+{
+    if (NULL == out)
+    {
+        POUND_LOG_ERROR(&thread_logger, "Aborting function: out is NULL.");
+        return GUI_PLUGIN_ERROR_INVALID_ARGUMENT;
+    }
+
+    *out = NULL;
+
     if (saved_size > 0 && NULL == saved_data)
     {
         POUND_LOG_WARN(&thread_logger,
@@ -78,7 +108,7 @@ gui_create(const void *POUND_RESTRICT saved_data, size_t saved_size)
         POUND_LOG_ERROR(&thread_logger,
                         "Aborting function: calloc failed for gui_state_t (%zu bytes).",
                         sizeof(gui_state_t));
-        return NULL;
+        return GUI_PLUGIN_ERROR_ALLOCATION_FAILED;
     }
 
     gui_state->debug_memory_tracker.first_time_run = true;
@@ -122,28 +152,30 @@ gui_create(const void *POUND_RESTRICT saved_data, size_t saved_size)
         POUND_LOG_DEBUG(&thread_logger, "No saved state, using defaults.");
     }
 
-    return gui_state;
+    *out = gui_state;
+    return GUI_PLUGIN_SUCCESS;
 }
 
-void
+static gui_plugin_error_t
 gui_destroy(void *gui_state)
 {
     if (NULL == gui_state)
     {
         POUND_LOG_ERROR(&thread_logger, "Aborting function: gui_state is NULL.");
-        return;
+        return GUI_PLUGIN_ERROR_INVALID_ARGUMENT;
     }
 
     free(gui_state);
+    return GUI_PLUGIN_SUCCESS;
 }
 
-void
+static gui_plugin_error_t
 gui_render_frame(void *gui_state)
 {
     if (POUND_UNLIKELY(NULL == gui_state))
     {
         POUND_LOG_ERROR(&thread_logger, "Aborting function: gui_state is NULL.");
-        return;
+        return GUI_PLUGIN_ERROR_INVALID_ARGUMENT;
     }
 
     gui_state_t         *state         = gui_state;
@@ -201,36 +233,48 @@ gui_render_frame(void *gui_state)
 
         ++panel_cursor;
     }
+
+    return GUI_PLUGIN_SUCCESS;
 }
 
-size_t
-gui_save(void *gui_state, void *out, size_t capacity)
+static gui_plugin_error_t
+gui_save(void *gui_state, void *out_gui, size_t capacity, size_t *out_size)
 {
     if (NULL == gui_state)
     {
         POUND_LOG_ERROR(&thread_logger, "Aborting function: gui_state is NULL.");
-        return 0;
+        return GUI_PLUGIN_ERROR_INVALID_ARGUMENT;
     }
 
-    if (NULL == out)
+    if (NULL == out_gui)
     {
+        if (out_size != NULL)
+        {
+            *out_size = sizeof(gui_state_t);
+        }
+
         POUND_LOG_DEBUG(
             &thread_logger, "out is NULL, returning required size (%zu).", sizeof(gui_state_t));
-        return sizeof(gui_state_t);
+        return GUI_PLUGIN_SUCCESS;
     }
 
     if (capacity < sizeof(gui_state_t))
     {
+        if (out_size != NULL)
+        {
+            *out_size = sizeof(gui_state_t);
+        }
+
         POUND_LOG_WARN(&thread_logger,
                        "capacity (%zu) < sizeof(gui_state_t) (%zu), "
                        "cannot save state.",
                        capacity,
                        sizeof(gui_state_t));
-        return sizeof(gui_state_t);
+        return GUI_PLUGIN_ERROR_BUFFER_TOO_SMALL;
     }
 
     const gui_state_t *POUND_RESTRICT state           = gui_state;
-    gui_state_t *POUND_RESTRICT       saved_gui_state = out;
+    gui_state_t *POUND_RESTRICT       saved_gui_state = out_gui;
     memset(saved_gui_state, 1, sizeof(gui_state_t));
     saved_gui_state->selected_tab         = state->selected_tab;
     saved_gui_state->panel_count          = state->panel_count;
@@ -247,7 +291,12 @@ gui_save(void *gui_state, void *out, size_t capacity)
         ++saved_panel_cursor;
     }
 
-    return sizeof(gui_state_t);
+    if (out_size != NULL)
+    {
+        *out_size = sizeof(gui_state_t);
+    }
+
+    return GUI_PLUGIN_SUCCESS;
 }
 
 void

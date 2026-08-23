@@ -429,21 +429,46 @@ app_gui_update(app_t *app, const bool force)
 
     if (app->gui.loaded && app->gui.gui_context && app->gui.exports.save)
     {
-        hot_reloaded_code_size = app->gui.exports.save(app->gui.gui_context, NULL, 0);
+        gui_plugin_error_t error
+            = app->gui.exports.save(app->gui.gui_context, NULL, 0, &hot_reloaded_code_size);
 
-        if (hot_reloaded_code_size > 0)
+        if (GUI_PLUGIN_SUCCESS == error && hot_reloaded_code_size > 0)
         {
             hot_reloaded_code = malloc(hot_reloaded_code_size);
 
             if (hot_reloaded_code != NULL)
             {
-                app->gui.exports.save(
-                    app->gui.gui_context, hot_reloaded_code, hot_reloaded_code_size);
+                error = app->gui.exports.save(app->gui.gui_context,
+                                              hot_reloaded_code,
+                                              hot_reloaded_code_size,
+                                              &hot_reloaded_code_size);
+
+                if (GUI_PLUGIN_SUCCESS != error)
+                {
+                    POUND_LOG_ERROR(&thread_logger,
+                                    "Failed to save GUI state because %s.",
+                                    gui_plugin_error_to_string(error));
+                    free(hot_reloaded_code);
+                    hot_reloaded_code      = NULL;
+                    hot_reloaded_code_size = 0;
+                }
             }
             else
             {
+                POUND_LOG_ERROR(&thread_logger,
+                                "Failed to allocate %zu bytes for GUI state save.",
+                                hot_reloaded_code_size);
                 hot_reloaded_code_size = 0;
             }
+        }
+        else if (GUI_PLUGIN_SUCCESS != error)
+        {
+            POUND_LOG_WARN(&thread_logger,
+                           "GUI state size query failed because %s.",
+                           gui_plugin_error_to_string(error));
+        }
+        else
+        {
         }
     }
 
@@ -469,13 +494,15 @@ app_gui_update(app_t *app, const bool force)
 
     if (true == gui_plugin_load_module(&next, app->gui_source_path))
     {
-        void *next_handle = next.exports.create(hot_reloaded_code, hot_reloaded_code_size);
+        void                    *next_gui_context = NULL;
+        const gui_plugin_error_t error
+            = next.exports.create(hot_reloaded_code, hot_reloaded_code_size, &next_gui_context);
 
-        if (next_handle != NULL)
+        if (GUI_PLUGIN_SUCCESS == error && next_gui_context != NULL)
         {
             gui_plugin_t old     = app->gui;
             app->gui             = next;
-            app->gui.gui_context = next_handle;
+            app->gui.gui_context = next_gui_context;
             app->gui.loaded      = true;
 
             gui_plugin_destroy(&old);
@@ -495,14 +522,16 @@ app_gui_update(app_t *app, const bool force)
         }
         else
         {
-            POUND_LOG_ERROR(
-                &thread_logger, "Failed to reload GUI plugin at %s", app->gui_source_path);
+            POUND_LOG_ERROR(&thread_logger,
+                            "Failed to reload GUI plugin at %s because %s.",
+                            app->gui_source_path,
+                            gui_plugin_error_to_string(error));
             gui_plugin_destroy(&next);
         }
     }
     else
     {
-        POUND_LOG_ERROR(&thread_logger, "Failed to load GUI plugin at %s", app->gui_source_path);
+        POUND_LOG_ERROR(&thread_logger, "Failed to load GUI plugin at %s.", app->gui_source_path);
     }
 
     free(hot_reloaded_code);
