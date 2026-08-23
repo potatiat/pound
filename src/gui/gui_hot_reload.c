@@ -18,7 +18,7 @@
 
 static uint32_t hot_counter = 0;
 
-typedef bool (*get_exports_function_t)(gui_exports_t *);
+typedef bool (*get_exports_function_t)(gui_plugin_exports_t *);
 
 static void *shared_library_load(const char *path);
 static void  shared_library_unload(void *module);
@@ -103,10 +103,10 @@ gui_plugin_load_module(gui_plugin_t *POUND_RESTRICT plugin, const char *POUND_RE
 
     void *symbol = NULL;
 
-    if (false == shared_library_get_symbol(module, "gui_exports_get", &symbol))
+    if (false == shared_library_get_symbol(module, "gui_plugin_exports_get", &symbol))
     {
         POUND_LOG_ERROR(&thread_logger,
-                        "Aborting function: symbol 'gui_exports_get' not found in '%s'.",
+                        "Aborting function: symbol 'gui_plugin_exports_get' not found in '%s'.",
                         loaded_path);
         shared_library_unload(module);
 
@@ -121,7 +121,7 @@ gui_plugin_load_module(gui_plugin_t *POUND_RESTRICT plugin, const char *POUND_RE
     if (NULL == symbol)
     {
         POUND_LOG_ERROR(&thread_logger,
-                        "Aborting function: 'gui_exports_get' resolved to NULL in '%s'.",
+                        "Aborting function: 'gui_plugin_exports_get' resolved to NULL in '%s'.",
                         loaded_path);
 
         shared_library_unload(module);
@@ -152,12 +152,12 @@ gui_plugin_load_module(gui_plugin_t *POUND_RESTRICT plugin, const char *POUND_RE
         return false;
     }
 
-    gui_exports_t exports = { 0 };
+    gui_plugin_exports_t exports = { 0 };
 
     if (false == get_exports(&exports))
     {
         POUND_LOG_ERROR(&thread_logger,
-                        "Aborting function: gui_exports_get() returned false for '%s'.",
+                        "Aborting function: gui_plugin_exports_get() returned false for '%s'.",
                         loaded_path);
         shared_library_unload(module);
 

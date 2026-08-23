@@ -26,20 +26,20 @@ typedef struct
     void (*destroy)(void *gui);
     void (*render_frame)(void *gui);
     size_t (*save)(void *gui, void *out, size_t capacity);
-} gui_exports_t;
+} gui_plugin_exports_t;
 
 typedef struct
 {
-    gui_exports_t exports;
-    void         *module;
-    void         *gui_handle;
-    char          loaded_path[MAX_PATH];
-    bool          loaded;
-    char          pad[7];
+    gui_plugin_exports_t exports;
+    void                *module;
+    void                *gui_handle;
+    char                 loaded_path[MAX_PATH];
+    bool                 loaded;
+    char                 pad[7];
 } gui_plugin_t;
 
 /// gui.c
-POUND_EXPORT bool gui_exports_get(gui_exports_t *out);
+POUND_EXPORT bool gui_plugin_exports_get(gui_plugin_exports_t *out);
 
 /// gui_loader.c
 POUND_EXPORT bool     gui_plugin_load_module(gui_plugin_t *POUND_RESTRICT plugin,

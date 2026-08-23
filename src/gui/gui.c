@@ -44,7 +44,7 @@ static void gui_panel_render_hot_reload_guide(void *context);
 static void gui_panel_render_imgui_demo(void *context);
 
 bool
-gui_exports_get(gui_exports_t *out)
+gui_plugin_exports_get(gui_plugin_exports_t *out)
 {
     if (NULL == out)
     {
