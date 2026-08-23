@@ -244,10 +244,10 @@ gui_plugin_load_module(gui_plugin_t *POUND_RESTRICT plugin, const char *POUND_RE
         return false;
     }
 
-    plugin->module     = module;
-    plugin->exports    = exports;
-    plugin->gui_handle = NULL;
-    plugin->loaded     = true;
+    plugin->module      = module;
+    plugin->exports     = exports;
+    plugin->gui_context = NULL;
+    plugin->loaded      = true;
 
     return true;
 }
@@ -261,9 +261,9 @@ gui_plugin_destroy(gui_plugin_t *plugin)
         return;
     }
 
-    if (plugin->gui_handle != NULL && plugin->exports.destroy != NULL)
+    if (plugin->gui_context != NULL && plugin->exports.destroy != NULL)
     {
-        plugin->exports.destroy(plugin->gui_handle);
+        plugin->exports.destroy(plugin->gui_context);
     }
     if (plugin->module != NULL)
     {

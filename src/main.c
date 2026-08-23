@@ -1,8 +1,8 @@
 #include "gui/gui.h"
 #include "log.h"
 #include <SDL3/SDL.h>
-#include <stdlib.h>
 #include <mimalloc-override.h>
+#include <stdlib.h>
 
 // This is required to perform hot reloading using Windows DLLs.
 #if POUND_PLATFORM_WINDOWS
@@ -427,9 +427,9 @@ app_gui_update(app_t *app, const bool force)
     void  *hot_reloaded_code      = NULL;
     size_t hot_reloaded_code_size = 0;
 
-    if (app->gui.loaded && app->gui.gui_handle && app->gui.exports.save)
+    if (app->gui.loaded && app->gui.gui_context && app->gui.exports.save)
     {
-        hot_reloaded_code_size = app->gui.exports.save(app->gui.gui_handle, NULL, 0);
+        hot_reloaded_code_size = app->gui.exports.save(app->gui.gui_context, NULL, 0);
 
         if (hot_reloaded_code_size > 0)
         {
@@ -438,7 +438,7 @@ app_gui_update(app_t *app, const bool force)
             if (hot_reloaded_code != NULL)
             {
                 app->gui.exports.save(
-                    app->gui.gui_handle, hot_reloaded_code, hot_reloaded_code_size);
+                    app->gui.gui_context, hot_reloaded_code, hot_reloaded_code_size);
             }
             else
             {
@@ -473,10 +473,10 @@ app_gui_update(app_t *app, const bool force)
 
         if (next_handle != NULL)
         {
-            gui_plugin_t old    = app->gui;
-            app->gui            = next;
-            app->gui.gui_handle = next_handle;
-            app->gui.loaded     = true;
+            gui_plugin_t old     = app->gui;
+            app->gui             = next;
+            app->gui.gui_context = next_handle;
+            app->gui.loaded      = true;
 
             gui_plugin_destroy(&old);
 
@@ -733,9 +733,9 @@ app_render_frame(app_t *app)
     {
         app_render_frozen_overlay(app);
     }
-    else if (app->gui.loaded && app->gui.gui_handle && app->gui.exports.render_frame)
+    else if (app->gui.loaded && app->gui.gui_context && app->gui.exports.render_frame)
     {
-        app->gui.exports.render_frame(app->gui.gui_handle);
+        app->gui.exports.render_frame(app->gui.gui_context);
     }
     else
     {

@@ -32,10 +32,13 @@ typedef struct
 {
     gui_plugin_exports_t exports;
     void                *module;
-    void                *gui_handle;
-    char                 loaded_path[MAX_PATH];
-    bool                 loaded;
-    char                 pad[7];
+
+    /// gui_state_t.
+    void *gui_context;
+
+    char loaded_path[MAX_PATH];
+    bool loaded;
+    char pad[7];
 } gui_plugin_t;
 
 /// gui.c
