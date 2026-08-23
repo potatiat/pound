@@ -171,18 +171,37 @@ debug_memory_render(debug_memory_tracker_t *context)
 
         if (mi_stats_get(&stats))
         {
+            const ImVec4_c header_color
+                = { .x = 100.0f / 255.0f, .y = 149.0f / 255.0f, .z = 237.0f / 255.0f, .w = 1.0f };
+            igTextColored(header_color, "Memory Utilization");
+            igSeparator();
+
+            const double reserved_mib  = (double)stats.reserved.current / (1024.0F * 1024.0F);
+            const double committed_mib = (double)stats.committed.current / (1024.0F * 1024.0F);
             const double memory_in_use
                 = (double)(stats.malloc_normal.current + stats.malloc_huge.current)
-                  / (1024.0 * 1024.0);
+                  / (1024.0F * 1024.0F);
+            const double malloc_req_mib
+                = (double)stats.malloc_requested.total / (1024.0F * 1024.0F);
 
-            igSeparator();
-            igText(
-                "reserved: %.1f MiB   committed: %.1f MiB   in use: %.1f MiB   malloc req: %.1f "
-                "MiB",
-                (double)stats.reserved.current / (1024.0 * 1024.0),
-                (double)stats.committed.current / (1024.0 * 1024.0),
-                memory_in_use,
-                (double)stats.malloc_requested.total / (1024.0 * 1024.0));
+            float fraction = (reserved_mib > 0.0F) ? (float)(committed_mib / reserved_mib) : 0.0F;
+
+            if (fraction > 1.0F)
+            {
+                fraction = 1.0F;
+            }
+
+            char overlay[128];
+            snprintf(overlay,
+                     sizeof(overlay),
+                     "%.1f / %.1f MiB (%.0f%%)",
+                     committed_mib,
+                     reserved_mib,
+                     fraction * 100.0F);
+
+            igText("Committed vs reserved");
+            igProgressBar(fraction, (ImVec2_c) { .x = -1.0f, .y = 0.0f }, overlay);
+            igText("in use: %.1f MiB   malloc req: %.1f MiB", memory_in_use, malloc_req_mib);
         }
     }
 
