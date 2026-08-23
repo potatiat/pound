@@ -465,8 +465,9 @@ void
 gui_panel_render_hot_reload_guide(void *context)
 {
     (void)context;
+    const ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoCollapse;
 
-    if (igBegin("Hot Reloading Guide", NULL, 0))
+    if (igBegin("Hot Reloading Guide", NULL, window_flags))
     {
         igText("Rebuild PoundGui to reload GUI code.");
         igText("Press F5 to force reload.");

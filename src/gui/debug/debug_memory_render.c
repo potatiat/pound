@@ -48,7 +48,9 @@ debug_memory_render(debug_memory_tracker_t *context)
     }
 
     mi_stats_t_decl(stats);
-    if (true == igBegin(title, NULL, 0))
+    const ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoCollapse;
+
+    if (true == igBegin(title, NULL, window_flags))
     {
         ImDrawList *POUND_RESTRICT draw_list   = igGetWindowDrawList();
         const ImVec2_c             origin      = igGetCursorScreenPos();
