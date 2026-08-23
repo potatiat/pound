@@ -158,6 +158,7 @@ add_library(PoundCore STATIC
         src/core/guest_memory.c
         src/core/guest_state.c
         src/core/log.c
+        src/core/safe_math.c
 )
 target_include_directories(PoundCore PUBLIC src/core)
 add_compiler_flags(PoundCore)
