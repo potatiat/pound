@@ -378,47 +378,31 @@ debug_hex_pack_hex_needle(const uint8_t *digits,
 }
 
 static bool
-debug_hex_parse_find(const char *input, uint8_t *needle, uint8_t *needle_len)
+debug_hex_is_space(const char character)
 {
-    if (NULL == input || NULL == needle || NULL == needle_len)
-    {
-        return false;
-    }
+    return (' ' == character) || ('\t' == character);
+}
 
-    size_t i = 0;
-
-    while (' ' == input[i] || '\t' == input[i])
-    {
-        ++i;
-    }
-
-    bool force_hex = false;
-
-    if ('0' == input[i] && ('x' == input[i + 1] || 'X' == input[i + 1]))
-    {
-        force_hex = true;
-        i += 2;
-    }
-
+static bool
+debug_hex_parse_hex_stream(
+    const char *input, const size_t start, const size_t end, uint8_t *needle, uint8_t *needle_len)
+{
     uint8_t digits[DEBUG_HEX_NEEDLE_MAX * 2U];
     size_t  digit_count = 0;
-    bool    saw_non_hex = false;
+    size_t  i           = start;
 
-    for (; '\0' != input[i]; ++i)
+    for (; i < end; ++i)
     {
-        const char character = input[i];
-
-        if (' ' == character || '\t' == character)
+        if (true == debug_hex_is_space(input[i]))
         {
             continue;
         }
 
-        const int nibble = debug_hex_nibble(character);
+        const int nibble = debug_hex_nibble(input[i]);
 
         if (nibble < 0)
         {
-            saw_non_hex = true;
-            break;
+            return false;
         }
 
         if (digit_count >= sizeof(digits))
@@ -430,35 +414,133 @@ debug_hex_parse_find(const char *input, uint8_t *needle, uint8_t *needle_len)
         ++digit_count;
     }
 
-    if (true == force_hex)
+    return debug_hex_pack_hex_needle(digits, digit_count, needle, needle_len);
+}
+
+static bool
+debug_hex_parse_spaced_bytes(
+    const char *input, const size_t start, const size_t end, uint8_t *needle, uint8_t *needle_len)
+{
+    bool   saw_space = false;
+    size_t i         = start;
+
+    for (; i < end; ++i)
     {
-        if (true == saw_non_hex)
+        if (true == debug_hex_is_space(input[i]))
         {
-            return false;
+            saw_space = true;
+            break;
         }
-
-        return debug_hex_pack_hex_needle(digits, digit_count, needle, needle_len);
     }
 
-    if (false == saw_non_hex)
-    {
-        return debug_hex_pack_hex_needle(digits, digit_count, needle, needle_len);
-    }
-
-    size_t ascii_length = strlen(input);
-
-    while (ascii_length > 0U
-           && (' ' == input[ascii_length - 1U] || '\t' == input[ascii_length - 1U]))
-    {
-        --ascii_length;
-    }
-
-    if (0 == ascii_length || ascii_length > DEBUG_HEX_NEEDLE_MAX)
+    if (false == saw_space)
     {
         return false;
     }
 
-    memcpy(needle, input, ascii_length);
+    size_t byte_count = 0;
+    i                 = start;
+
+    while (i < end)
+    {
+        while (i < end && true == debug_hex_is_space(input[i]))
+        {
+            ++i;
+        }
+
+        if (i >= end)
+        {
+            break;
+        }
+
+        if ((i + 1U) >= end)
+        {
+            return false;
+        }
+
+        const int high = debug_hex_nibble(input[i]);
+        const int low  = debug_hex_nibble(input[i + 1U]);
+
+        if (high < 0 || low < 0)
+        {
+            return false;
+        }
+
+        if ((i + 2U) < end && false == debug_hex_is_space(input[i + 2U]))
+        {
+            return false;
+        }
+
+        if (byte_count >= DEBUG_HEX_NEEDLE_MAX)
+        {
+            return false;
+        }
+
+        needle[byte_count] = (uint8_t)((high << 4) | low);
+        ++byte_count;
+        i += 2U;
+    }
+
+    if (0U == byte_count)
+    {
+        return false;
+    }
+
+    *needle_len = (uint8_t)byte_count;
+    return true;
+}
+
+static bool
+debug_hex_parse_find(const char *input, uint8_t *needle, uint8_t *needle_len)
+{
+    if (NULL == input || NULL == needle || NULL == needle_len)
+    {
+        return false;
+    }
+
+    size_t start = 0;
+
+    while ('\0' != input[start] && true == debug_hex_is_space(input[start]))
+    {
+        ++start;
+    }
+
+    size_t end = strlen(input);
+
+    while (end > start && true == debug_hex_is_space(input[end - 1U]))
+    {
+        --end;
+    }
+
+    if (start >= end)
+    {
+        return false;
+    }
+
+    if ('0' == input[start] && ('x' == input[start + 1U] || 'X' == input[start + 1U]))
+    {
+        return debug_hex_parse_hex_stream(input, start + 2U, end, needle, needle_len);
+    }
+    else
+    {
+    }
+
+    if (true == debug_hex_parse_spaced_bytes(input, start, end, needle, needle_len))
+    {
+        return true;
+    }
+    else
+    {
+    }
+
+    const size_t ascii_length = end - start;
+
+    if (ascii_length > DEBUG_HEX_NEEDLE_MAX)
+    {
+        return false;
+    }
+
+    memcpy(needle, input + start, ascii_length);
     *needle_len = (uint8_t)ascii_length;
     return true;
 }
