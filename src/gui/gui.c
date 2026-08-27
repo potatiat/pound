@@ -55,6 +55,7 @@ static void gui_panel_register(gui_state_t *POUND_RESTRICT state,
 static void gui_panel_render_memory_tracker(void *context);
 static void gui_panel_render_hot_reload_guide(void *context);
 static void gui_panel_render_imgui_demo(void *context);
+static void gui_panel_render_hex_editor(void *context);
 
 gui_plugin_error_t
 gui_plugin_exports_get(gui_plugin_exports_t *out)
@@ -137,6 +138,12 @@ gui_create(const void *POUND_RESTRICT saved_data, size_t saved_size, void **out)
                        1.0F / 4.0F);
     gui_panel_register(
         gui_state, "ImGui Demo", gui_panel_render_imgui_demo, NULL, GUI_LAYOUT_REGION_NONE, 0.0F);
+    gui_panel_register(gui_state,
+                       "Hex Editor",
+                       gui_panel_render_hex_editor,
+                       &gui_state->debug_memory_tracker.hex,
+                       GUI_LAYOUT_REGION_NONE,
+                       0.0F);
 
     if (saved_data != NULL && saved_size >= sizeof(gui_state_t))
     {
@@ -297,6 +304,30 @@ gui_render_frame(void *gui_state)
         ImDrawList_AddText_Vec2(draw_list, text_position, IM_COL32(255, 255, 255, 200), text, NULL);
     }
     igEnd();
+
+    // Consume Open Hex Editor before rendering panels.
+    if (true == state->debug_memory_tracker.hex.request_open)
+    {
+        gui_panel_t *POUND_RESTRICT panel_cursor = state->panels;
+        const int                   panel_count  = state->panel_count;
+        int                         i            = 0;
+
+        for (; i < panel_count; ++i)
+        {
+            if (0 == strcmp(panel_cursor->name, "Hex Editor"))
+            {
+                panel_cursor->visible = true;
+                break;
+            }
+            else
+            {
+            }
+
+            ++panel_cursor;
+        }
+
+        state->debug_memory_tracker.hex.request_open = false;
+    }
 
     // PASS 2:  Render each visible panel.
 
@@ -480,6 +511,12 @@ gui_panel_render_imgui_demo(void *context)
 {
     (void)context;
     igShowDemoWindow(NULL);
+}
+
+void
+gui_panel_render_hex_editor(void *context)
+{
+    debug_hex_render(context);
 }
 
 /*** end of file ***/

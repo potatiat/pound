@@ -171,7 +171,9 @@ add_library(PoundGui SHARED
         src/gui/gui_hot_reload.c
         src/gui/gui_layout.c
         src/gui/debug/debug_memory_data.c
-        src/gui/debug/debug_memory_render.c)
+        src/gui/debug/debug_memory_render.c
+        src/gui/debug/debug_hex_data.c
+        src/gui/debug/debug_hex_render.c)
 target_include_directories(PoundGui PUBLIC src/gui)
 # Windows loads PoundGui before the EXE finishes its own imports. Listing
 # mimalloc ahead of imgui keeps mimalloc-redirect ahead of ucrt in

@@ -2,27 +2,32 @@
 #define POUND_MEMORY_DATA_H
 
 #include "attributes.h"
+#include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
 
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include "cimgui.h"
+#include "debug_hex.h"
 
 typedef struct
 {
-    uint64_t current_frame;
-    uint64_t gva_high;
-    uint64_t gva_low;
-    uint64_t gva_text_start;
-    uint64_t gva_text_end;
-    uint64_t gva_data_start;
-    uint64_t gva_data_end;
-    uint64_t gva_vram_framebuffer_start;
-    uint64_t gva_vram_framebuffer_end;
-    uint8_t  selected_box_info_index;
-    bool     first_time_run;
-    char     pad[6];
+    uint64_t           current_frame;
+    uint64_t           gva_high;
+    uint64_t           gva_low;
+    uint64_t           gva_text_start;
+    uint64_t           gva_text_end;
+    uint64_t           gva_data_start;
+    uint64_t           gva_data_end;
+    uint64_t           gva_vram_framebuffer_start;
+    uint64_t           gva_vram_framebuffer_end;
+    uint8_t            selected_box_info_index;
+    bool               first_time_run;
+    char               pad[6];
+    debug_hex_editor_t hex;
 } debug_memory_tracker_t;
+
+static_assert(336 == sizeof(debug_memory_tracker_t), "Struct size mismatch");
 
 typedef struct
 {
@@ -71,7 +76,8 @@ void debug_memory_render(debug_memory_tracker_t *context);
 POUND_HOT ImVec2_c debug_memory_gui_box_render(ImDrawList *POUND_RESTRICT draw_list,
                                                const debug_memory_gui_box_t *POUND_RESTRICT box);
 POUND_HOT bool debug_memory_gui_box_is_clicked(const debug_memory_gui_box_t *POUND_RESTRICT box);
-void           debug_memory_gui_box_info_render(const debug_memory_gui_box_info_t *info);
+void           debug_memory_gui_box_info_render(const debug_memory_gui_box_info_t *info,
+                                                debug_hex_editor_t                *hex);
 
 #endif // POUND_MEMORY_DATA_H
 

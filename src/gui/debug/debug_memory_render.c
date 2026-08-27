@@ -168,7 +168,7 @@ debug_memory_render(debug_memory_tracker_t *context)
             }
         }
 
-        debug_memory_gui_box_info_render(&selected_box_info);
+        debug_memory_gui_box_info_render(&selected_box_info, &context->hex);
 
         if (mi_stats_get(&stats))
         {
@@ -265,7 +265,7 @@ debug_memory_gui_box_is_clicked(const debug_memory_gui_box_t *box)
 }
 
 void
-debug_memory_gui_box_info_render(const debug_memory_gui_box_info_t *info)
+debug_memory_gui_box_info_render(const debug_memory_gui_box_info_t *info, debug_hex_editor_t *hex)
 {
     if (POUND_UNLIKELY(NULL == info))
     {
@@ -344,6 +344,28 @@ debug_memory_gui_box_info_render(const debug_memory_gui_box_info_t *info)
     igTextColored(label_color, "perms");
     igTableSetColumnIndex(1);
     igText("%s", info->permissions);
+
+    igTableNextRow(0, 0.0f);
+    igTableSetColumnIndex(0);
+    igTextColored(label_color, "hex");
+    igTableSetColumnIndex(1);
+
+    const ImVec2_c button_size = { .x = 0.0f, .y = 0.0f };
+
+    if (true == igButton("Open Hex Editor", button_size))
+    {
+        if (NULL != hex)
+        {
+            debug_hex_open(hex, info->name, info->gva_start, info->gva_end);
+        }
+        else
+        {
+            POUND_LOG_ERROR(&thread_logger, "Aborting function: hex is NULL.");
+        }
+    }
+    else
+    {
+    }
 
     igEndTable();
 }
